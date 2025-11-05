@@ -1,5 +1,5 @@
 // src/services/s3Service.js
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const crypto = require('crypto');
 const path = require('path');
@@ -74,6 +74,38 @@ const deleteFile = async (fileUrl) => {
 };
 
 /**
+ * Listar todos los archivos en el bucket S3
+ * @returns {Promise<Array>} - Array de objetos con información de archivos
+ */
+const listFiles = async () => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents || response.Contents.length === 0) {
+      return [];
+    }
+
+    // Mapear los archivos con información útil
+    const files = response.Contents.map(file => ({
+      key: file.Key,
+      url: `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${file.Key}`,
+      size: file.Size,
+      lastModified: file.LastModified,
+      sizeKB: (file.Size / 1024).toFixed(2)
+    }));
+
+    return files;
+  } catch (error) {
+    console.error('Error al listar archivos de S3:', error);
+    throw new Error('Error al listar archivos de S3');
+  }
+};
+
+/**
  * Obtener URL pre-firmada (para archivos privados, opcional)
  * @param {string} fileName - Nombre del archivo en S3
  * @param {number} expiresIn - Tiempo de expiración en segundos (default: 3600)
@@ -98,5 +130,6 @@ module.exports = {
   uploadFile,
   deleteFile,
   getPresignedUrl,
+  listFiles,
   s3Client
 };
