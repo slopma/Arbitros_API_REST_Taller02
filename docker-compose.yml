@@ -1,0 +1,19 @@
+services:
+  arbitros-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arbitros-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SPRING_BOOT_API_URL=http://host.docker.internal:8080
+      - PORT=3000
+    restart: always
+    networks:
+      - arbitros-net
+
+networks:
+  arbitros-net:
+    driver: bridge
